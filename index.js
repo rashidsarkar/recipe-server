@@ -74,28 +74,33 @@ async function run() {
       }
     });
 
-    app.post("/userData", async (req, res) => {
-      const { name, email, photoURL, coin } = req.body;
+    app.post("/api/userData", async (req, res) => {
+      const { name, photo, email, coin } = req.body;
+      const userExists = await userCollection.findOne({ email });
 
-      // Check if user already exists in the database
-      const existingUser = await userCollection.findOne({ email });
-
-      if (existingUser) {
+      if (userExists) {
         return res.status(400).json({ message: "User already exists" });
       }
 
-      // If user doesn't exist, insert the data into the database
-      try {
-        await userCollection.insertOne({
-          name,
-          email,
-          photoURL, // Add photoURL field
-          coin: coin || 50,
-        });
-        res.status(201).json({ message: "User data inserted successfully" });
-      } catch (error) {
-        res.status(500).json({ message: "Error inserting user data", error });
+      const newUser = { name, photo, email, coin };
+      const result = await userCollection.insertOne(newUser);
+
+      if (result.insertedId) {
+        res.status(201).json({ message: "User data added successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to add user data" });
       }
+    });
+
+    app.get("/userCoin/:email", async (req, res) => {
+      const { email } = req.params; // Use req.params to get email parameter
+      const user = await userCollection.findOne({ email });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.status(200).json({ coin: user.coin });
     });
 
     // Send a ping to confirm a successful connection
