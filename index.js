@@ -75,14 +75,14 @@ async function run() {
     });
 
     app.post("/api/userData", async (req, res) => {
-      const { name, photo, email, coin } = req.body;
+      const { name, photo, email, coin, incomeCoin } = req.body;
       const userExists = await userCollection.findOne({ email });
 
       if (userExists) {
         return res.status(400).json({ message: "User already exists" });
       }
 
-      const newUser = { name, photo, email, coin };
+      const newUser = { name, photo, email, coin, incomeCoin };
       const result = await userCollection.insertOne(newUser);
 
       if (result.insertedId) {
@@ -101,6 +101,60 @@ async function run() {
       }
 
       res.status(200).json({ coin: user.coin });
+    });
+
+    app.post("/api/purchaseRecipe", async (req, res) => {
+      const { userEmail, recipeId } = req.body;
+
+      const user = await userCollection.findOne({ email: userEmail });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.coin < 10) {
+        return res.status(400).json({ message: "Insufficient coins" });
+      }
+
+      const recipe = await receipeCollection.findOne({
+        _id: new ObjectId(recipeId),
+      });
+      if (!recipe) {
+        return res.status(404).json({ message: "Recipe not found" });
+      }
+
+      const creator = await userCollection.findOne({
+        email: recipe.creatorEmail,
+      });
+      if (!creator) {
+        return res.status(404).json({ message: "Creator not found" });
+      }
+
+      try {
+        await userCollection.updateOne(
+          { email: userEmail },
+          { $inc: { coin: -10 } }
+        );
+
+        await userCollection.updateOne(
+          { email: recipe.creatorEmail },
+          { $inc: { incomeCoin: 1 } }
+        );
+
+        await receipeCollection.updateOne(
+          { _id: new ObjectId(recipeId) },
+          {
+            $push: { purchased_by: userEmail },
+            $inc: { watchCount: 1 },
+          }
+        );
+
+        const updatedRecipe = await receipeCollection.findOne({
+          _id: new ObjectId(recipeId),
+        });
+        res.status(200).json(updatedRecipe);
+      } catch (error) {
+        res.status(500).json({ message: "Purchase failed", error });
+      }
     });
 
     // Send a ping to confirm a successful connection
