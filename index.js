@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const mongodb = require("mongodb");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_KEY);
 
 const app = express();
 const port = 5000;
@@ -43,6 +44,7 @@ async function run() {
     });
     app.get("/api/recipeSingleData", async (req, res) => {
       const id = req.query.id;
+      console.log(id, "recepy id");
 
       if (!id) {
         return res.status(400).json({ message: "Recipe ID is required" });
@@ -187,6 +189,51 @@ async function run() {
         res.status(500).json({ message: "Purchase failed", error });
       }
     });
+
+    // payment
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      console.log(amount, "amount");
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    // bye coin
+    app.put("/api/buyCoin", async (req, res) => {
+      const { email, coinAmount } = req.body;
+
+      if (!email || !coinAmount) {
+        return res
+          .status(400)
+          .json({ error: "Email and coinAmount are required" });
+      }
+
+      try {
+        const user = await userCollection.findOne({ email });
+
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        const updatedUser = await userCollection.updateOne(
+          { email },
+          { $inc: { coin: coinAmount } }
+        );
+
+        res.json({ message: "Coins purchased successfully", updatedUser });
+      } catch (error) {
+        console.error("Error buying coins:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
