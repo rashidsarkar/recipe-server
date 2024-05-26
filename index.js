@@ -69,10 +69,92 @@ async function run() {
 
     // JWT
 
+    // app.get("/api/allRecipe", async (req, res) => {
+    //   const result = await receipeCollection.find().toArray();
+    //   res.send(result);
+    // });
+
+    // infinity
+
+    // app.get("/api/allRecipe", async (req, res) => {
+    //   const page = parseInt(req.query.page) || 1; // Get the page number from query parameter, default to 1 if not provided
+    //   const perPage = 10; // Number of recipes per page
+
+    //   try {
+    //     const totalCount = await receipeCollection.countDocuments(); // Total count of recipes
+    //     const totalPages = Math.ceil(totalCount / perPage); // Total number of pages
+
+    //     const recipes = await receipeCollection
+    //       .find()
+    //       .skip((page - 1) * perPage) // Skip recipes based on page number
+    //       .limit(perPage) // Limit the number of recipes per page
+    //       .toArray();
+
+    //     res.json({
+    //       recipes,
+    //       totalPages,
+    //     });
+    //   } catch (error) {
+    //     console.error("Error occurred while fetching recipes:", error);
+    //     res.status(500).json({ error: "Internal server error" });
+    //   }
+    // });
+
+    // infinity
+
+    // filter
+    // Endpoint for fetching all recipes with filtering and search
+    // app.get("/api/allRecipe", async (req, res) => {
+    //   try {
+    //     const client = new MongoClient(url, { useUnifiedTopology: true });
+    //     await client.connect();
+
+    //     const db = client.db(dbName);
+    //     const collection = db.collection("recipes");
+
+    //     // Extracting filters from query parameters
+    //     const { category, country, search } = req.query;
+
+    //     // Constructing filter object based on provided parameters
+    //     const filter = {};
+    //     if (category) filter.category = category;
+    //     if (country) filter.country = country;
+    //     if (search) filter.title = { $regex: search, $options: "i" }; // Case-insensitive search
+
+    //     // Fetching recipes based on filter
+    //     const recipes = await collection.find(filter).toArray();
+
+    //     res.json(recipes);
+    //   } catch (error) {
+    //     console.error("Error fetching recipes:", error);
+    //     res.status(500).json({ error: "Internal server error" });
+    //   }
+    // });
+
+    // filter
+    // filter2
     app.get("/api/allRecipe", async (req, res) => {
-      const result = await receipeCollection.find().toArray();
+      const { recipe_name, category, country } = req.query;
+      let query = {};
+
+      if (recipe_name) {
+        query.recipe_name = { $regex: new RegExp(recipe_name, "i") };
+      }
+
+      if (category) {
+        query.category = category;
+      }
+
+      if (country) {
+        query.country = { $regex: new RegExp(country, "i") };
+      }
+
+      const result = await receipeCollection.find(query).toArray();
       res.send(result);
     });
+
+    // filter2
+
     app.get("/api/recipeSingleData", verifyToken, async (req, res) => {
       const id = req.query.id;
       console.log(id, "recepy id");
