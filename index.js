@@ -95,7 +95,7 @@ async function run() {
         res.status(500).json({ message: "Error fetching recipe", error });
       }
     });
-    app.post("/api/AddRecipes", async (req, res) => {
+    app.post("/api/AddRecipes", verifyToken, async (req, res) => {
       const {
         recipe_name,
         image,
@@ -156,7 +156,7 @@ async function run() {
       res.status(200).json({ coin: user.coin });
     });
 
-    app.post("/api/purchaseRecipe", async (req, res) => {
+    app.post("/api/purchaseRecipe", verifyToken, async (req, res) => {
       const { userEmail, recipeId } = req.body;
 
       const user = await userCollection.findOne({ email: userEmail });
