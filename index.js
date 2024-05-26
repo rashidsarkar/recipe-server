@@ -3,9 +3,12 @@ const cors = require("cors");
 const mongodb = require("mongodb");
 require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_KEY);
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 
 const app = express();
-const port = 5000;
+app.use(cookieParser());
+const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(
@@ -38,11 +41,39 @@ async function run() {
       .db("recipeSharingSystem")
       .collection("allUser");
 
+    // JWT
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
+
+    //midleware
+    const verifyToken = (req, res, next) => {
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: "Unauthorized" });
+      }
+      const token = req.headers.authorization.split(" ")[1];
+      // jwt.verify(token, process.env.ACCESS_TOKEN_);
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          // res error
+          return res.status(401).send({ message: "Unauthorized" });
+        }
+        req.decoded = decoded;
+        next();
+      });
+    };
+
+    // JWT
+
     app.get("/api/allRecipe", async (req, res) => {
       const result = await receipeCollection.find().toArray();
       res.send(result);
     });
-    app.get("/api/recipeSingleData", async (req, res) => {
+    app.get("/api/recipeSingleData", verifyToken, async (req, res) => {
       const id = req.query.id;
       console.log(id, "recepy id");
 
