@@ -130,6 +130,17 @@ async function run() {
       }
 
       try {
+        const alreadyPurchased = await receipeCollection.findOne({
+          _id: new ObjectId(recipeId),
+          purchased_by: userEmail,
+        });
+
+        if (alreadyPurchased) {
+          return res
+            .status(400)
+            .json({ message: "User already purchased this recipe" });
+        }
+
         await userCollection.updateOne(
           { email: userEmail },
           { $inc: { coin: -10 } }
@@ -156,7 +167,6 @@ async function run() {
         res.status(500).json({ message: "Purchase failed", error });
       }
     });
-
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
