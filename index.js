@@ -41,7 +41,27 @@ async function run() {
       const result = await receipeCollection.find().toArray();
       res.send(result);
     });
+    app.get("/api/recipeSingleData", async (req, res) => {
+      const id = req.query.id;
 
+      if (!id) {
+        return res.status(400).json({ message: "Recipe ID is required" });
+      }
+
+      try {
+        const result = await receipeCollection.findOne({
+          _id: new ObjectId(id),
+        });
+
+        if (!result) {
+          return res.status(404).json({ message: "Recipe not found" });
+        }
+
+        res.status(200).json(result);
+      } catch (error) {
+        res.status(500).json({ message: "Error fetching recipe", error });
+      }
+    });
     app.post("/api/AddRecipes", async (req, res) => {
       const {
         recipe_name,
