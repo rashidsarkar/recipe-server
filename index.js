@@ -40,6 +40,9 @@ async function run() {
     const userCollection = client
       .db("recipeSharingSystem")
       .collection("allUser");
+    const ratingCollection = client
+      .db("recipeSharingSystem")
+      .collection("reatingData");
 
     // JWT
     app.post("/jwt", async (req, res) => {
@@ -346,6 +349,28 @@ async function run() {
         res.status(500).json({ error: "Internal Server Error" });
       }
     });
+
+    // rating
+    // Endpoint to get rating
+    app.get("/api/rating/:recipeId", async (req, res) => {
+      const { recipeId } = req.params;
+      const { email } = req.query;
+      const rating = await ratingCollection.findOne({ recipeId, email });
+      res.send(rating);
+    });
+
+    // Endpoint to submit rating
+    app.post("/api/rating", async (req, res) => {
+      const { recipeId, email, rating } = req.body;
+      await ratingCollection.updateOne(
+        { recipeId, email },
+        { $set: { rating } },
+        { upsert: true }
+      );
+      res.send({ message: "Rating submitted" });
+    });
+
+    // rating
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
